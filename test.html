@@ -1,0 +1,75 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>DotDash apps test</title>
+<style>
+body { background: linear-gradient(180deg, #8fa3b1, #6c7c86 45%, #3d4246 46%, #2c3033); margin: 0; padding: 16px; font: 12px Consolas; color: #ddd; }
+#grid { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-start; }
+.slot { position: relative; }
+.slot span { position: absolute; left: 0; top: -14px; font-size: 10px; color: #000; }
+</style></head>
+<body>
+<div id="grid"></div>
+<script>
+// Just enough of BeamNG's UI to run the built apps: angular.module().directive(),
+// StreamsManager, bngApi, UiUnits, and streams shaped like the game's.
+// ?imperial switches the units the way the game's options menu would.
+const IMPERIAL = location.search.includes("imperial");
+window.__log = []; window.__ev = {}; window.__dirs = {}; window.__lua = [];
+window.StreamsManager = { add: (l) => __log.push("add " + l.join(",")), remove: () => {} };
+window.bngApi = { activeObjectLua: (s) => __lua.push(s) };
+window.UiUnits = IMPERIAL ? {
+  speed: (ms) => ({ val: ms * 2.23694, unit: "mph" }),
+  pressure: (k) => ({ val: k * 0.145038, unit: "PSI" }),
+  temperature: (c) => ({ val: c * 1.8 + 32, unit: "°F" }),
+} : {
+  speed: (ms) => ({ val: ms * 3.6, unit: "km/h" }),
+  pressure: (k) => ({ val: k * 0.01, unit: "Bar" }),
+  temperature: (c) => ({ val: c, unit: "°C" }),
+};
+window.angular = { module: () => ({ directive: (name, arr) => { __dirs[name] = arr[arr.length - 1](); } }) };
+const APPS = { DotDash: [560, 215], DotTacho: [300, 300], DotBoost: [190, 190], DotStartStop: [290, 200],
+               DotGMeter: [190, 190], DotPedals: [220, 200], DotInfo: [260, 120], DotTimer: [260, 120], DotGears: [340, 80], DotGear: [90, 90], DotPedalsClear: [200, 190], DotRpm: [460, 56], DotGearRing: [120, 120] };
+</script>
+<script src="build/dotdash/ui/modules/apps/DotDash/app.js"></script>
+<script src="build/dotdash/ui/modules/apps/DotTacho/app.js"></script>
+<script src="build/dotdash/ui/modules/apps/DotBoost/app.js"></script>
+<script src="build/dotdash/ui/modules/apps/DotStartStop/app.js"></script>
+<script src="build/dotdash/ui/modules/apps/DotGMeter/app.js"></script>
+<script src="build/dotdash/ui/modules/apps/DotPedals/app.js"></script>
+<script src="build/dotdash/ui/modules/apps/DotInfo/app.js"></script>
+<script src="build/dotdash/ui/modules/apps/DotTimer/app.js"></script>
+<script src="build/dotdash/ui/modules/apps/DotGears/app.js"></script>
+<script src="build/dotdash/ui/modules/apps/DotGear/app.js"></script>
+<script src="build/dotdash/ui/modules/apps/DotPedalsClear/app.js"></script>
+<script src="build/dotdash/ui/modules/apps/DotRpm/app.js"></script>
+<script src="build/dotdash/ui/modules/apps/DotGearRing/app.js"></script>
+<script>
+const handlers = [];
+for (const [name, [w, h]] of Object.entries(APPS)) {
+  const key = name[0].toLowerCase() + name.slice(1);
+  const d = __dirs[key];
+  if (!d) { __log.push("MISSING " + key); continue; }
+  const slot = document.createElement("div");
+  slot.className = "slot"; slot.style.width = w + "px"; slot.style.height = h + "px";
+  slot.innerHTML = d.template + `<span>${name}</span>`;
+  document.getElementById("grid").appendChild(slot);
+  const scope = { $on: (ev, fn) => { if (ev === "streamsUpdate") handlers.push(fn); (window.__ev[ev] = window.__ev[ev] || []).push(fn); } };
+  try { d.link(scope, [slot.firstElementChild]); } catch (e) { __log.push("LINK " + name + ": " + e.message); }
+}
+window.frame = function (o) {
+  const info = Array(22).fill(0);
+  info[0] = 800; info[1] = 7200; info[4] = o.rpm; info[5] = o.gear; info[11] = o.fuel * 60; info[12] = 60; info[6] = 6; info[7] = 1; info[13] = o.auto ? "automatic" : "manual";
+  const s = {
+    electrics: { wheelspeed: o.kmh / 3.6, rpmTacho: o.rpm, throttle: o.thr, brake: o.brk, clutch: o.clu || 0,
+                 watertemp: o.water, oiltemp: o.oil, absActive: o.abs, tcsActive: o.tcs, parkingbrake: o.hb ? 1 : 0,
+                 signal_L: o.sl, gear: o.auto ? o.autoGear : undefined, gear_A: o.auto ? 0.6 : undefined, signal_R: o.sr, highbeam: o.hi, ignitionLevel: o.ign, engineRunning: o.run ? 1 : 0 },
+    engineInfo: info,
+    sensors: { gravity: -9.81, gx2: o.gx * 9.81, gy2: o.gy * 9.81 },
+    forcedInductionInfo: { boost: o.boost, maxBoost: 180 },
+  };
+  for (const h of handlers) { try { h({}, s); } catch (e) { __log.push("UPDATE: " + e.message); } }
+};
+frame({ rpm: 6100, kmh: 142, gear: 4, thr: 0.9, brk: 0, clu: 0, water: 96, oil: 112, fuel: 0.42, abs: false, tcs: true,
+        hb: false, sl: true, sr: false, hi: true, ign: 2, run: true, gx: 0.8, gy: 0.35, boost: 132 });
+__log.push("ok");
+</script>
+</body></html>

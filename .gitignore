@@ -1,0 +1,5 @@
+build/
+dist/
+__pycache__/
+# fonts you add for your own build are not redistributable
+fonts/

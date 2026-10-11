@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>DotDash shots</title>
+<style>
+/* the public build's fonts: BeamNG's own, served by shots_server.py from the game */
+@font-face { font-family: "DD Mono"; src: url(/ui/ui-vue/src/assets/fonts/OverpassMono/static/OverpassMono-Regular.ttf); }
+@font-face { font-family: "DD Head"; src: url(/ui/ui-vue/src/assets/fonts/Overpass/static/Overpass-SemiBold.ttf); }
+body { margin: 0; background: #222; color: #ccc; font: 13px "DD Mono", monospace; }
+#stage { position: absolute; left: 0; top: 0; }
+.w { position: absolute; }
+.w canvas { width: 100%; height: 100%; display: block; }
+</style>
+<script>
+// shots at 2x, whatever the screen
+Object.defineProperty(window, "devicePixelRatio", { get: () => 2 });
+</script>
+</head>
+<body>
+<div id="stage"></div>
+<pre id="log"></pre>
+<script src="../src/numfont.js"></script>
+<script src="../src/streams.js"></script>
+<script src="../src/widgets.js"></script>
+<script src="../src/dash.js"></script>
+<script>
+"use strict";
+DOT_STYLE.digits = "ntype"; DOT_STYLE.gauge = "line";
+let clock = 100000;
+performance.now = () => clock;
+
+const SPECS = {
+  DotDash: [DotDash, 560, 215], DotTacho: [DotTacho, 300, 300], DotBoost: [DotBoost, 190, 190],
+  DotStartStop: [DotStartStop, 290, 200], DotGMeter: [DotGMeter, 190, 190], DotRpm: [DotRpm, 460, 56],
+  DotGearRing: [DotGearRing, 120, 120], DotGear: [DotGear, 90, 90], DotGears: [DotGears, 340, 80],
+  DotPedals: [DotPedals, 220, 200], DotPedalsClear: [DotPedalsClear, 200, 190],
+  DotInfo: [DotInfo, 260, 120], DotTimer: [DotTimer, 260, 120],
+};
+function mount(name, x, y) {
+  const [Cls, w, h] = SPECS[name];
+  const box = document.createElement("div");
+  box.className = "w"; box.style.cssText = `left:${x}px;top:${y}px;width:${w}px;height:${h}px`;
+  box.innerHTML = "<canvas></canvas>";
+  document.getElementById("stage").appendChild(box);
+  const widget = new Cls(box.querySelector("canvas"));
+  widget.name = name; widget.box = box; widget.x = x; widget.y = y; widget.w = w; widget.h = h;
+  return widget;
+}
+
+const BUTTONS = [
+  { id: "hubs", tooltip: "Front hubs", icon: "powertrain_wheel_connected" },
+  { id: "dC", tooltip: "Center differential", icon: "powertrain_differential_lsd" },
+  { id: "range", tooltip: "Range box", icon: "powertrain_rangebox_high" },
+  { id: "tc", tooltip: "Transfer case", icon: "powertrain_shaft_connected" },
+  { id: "esc", tooltip: "ESC & TC", icon: "powertrain_esc", color: "98FB00" },
+];
+function state(i) {           // a hard pull out of a corner, frame i of 30
+  const k = i / 29;
+  return {
+    speed: (120 + 28 * k) / 3.6, rpm: 5200 + 1150 * k, maxRpm: 7200, gear: "4", gearbox: "manual",
+    gearIndex: 4, gearsF: 6, throttle: 0.92, brake: 0, clutch: 0, parkingbrake: 0,
+    gx: 0.85 * (1 - k) + 0.05, gy: 0.18 + 0.12 * k, water: 92, oil: 104, waterText: "92°", oilText: "104°",
+    fuel: 0.58, abs: false, tcs: false, signalL: false, signalR: true, highbeam: true,
+    ignition: 2, running: true, boostKpa: 70 + 60 * k, maxBoostKpa: 160,
+  };
+}
+function drive(widgets, frames) {
+  for (let i = 0; i < frames; i++) { clock += 1000 / 30; widgets.forEach((w) => w.update(state(Math.min(i, 29)))); }
+}
+
+async function save(name, canvas) {
+  const r = await fetch("/save", { method: "POST", body: JSON.stringify({ name, png: canvas.toDataURL("image/png") }) });
+  document.getElementById("log").textContent += name + " " + (r.ok ? "saved" : "FAILED") + "\n";
+}
+
+// a dusk road behind the hero shot - drawn, so there is no game art in it
+function backdrop(c, W, H) {
+  const sky = c.createLinearGradient(0, 0, 0, H * 0.62);
+  sky.addColorStop(0, "#0d1b2e"); sky.addColorStop(0.55, "#3b4f6b"); sky.addColorStop(1, "#c98a5e");
+  c.fillStyle = sky; c.fillRect(0, 0, W, H * 0.62);
+  c.fillStyle = "#1b1d20"; c.fillRect(0, H * 0.62, W, H * 0.38);
+  const ground = c.createLinearGradient(0, H * 0.62, 0, H);
+  ground.addColorStop(0, "rgba(201,138,94,0.25)"); ground.addColorStop(1, "rgba(0,0,0,0.6)");
+  c.fillStyle = ground; c.fillRect(0, H * 0.62, W, H * 0.38);
+  c.strokeStyle = "rgba(255,255,255,0.35)"; c.lineWidth = 6; c.setLineDash([60, 50]);
+  c.beginPath(); c.moveTo(W * 0.5, H * 0.62); c.lineTo(W * 0.5, H); c.stroke(); c.setLineDash([]);
+  c.strokeStyle = "rgba(255,255,255,0.12)"; c.lineWidth = 3;
+  c.beginPath(); c.moveTo(W * 0.48, H * 0.62); c.lineTo(W * 0.05, H); c.moveTo(W * 0.52, H * 0.62); c.lineTo(W * 0.95, H); c.stroke();
+}
+
+async function run() {
+  await document.fonts.ready;
+  await Promise.all([document.fonts.load("20px 'DD Mono'"), document.fonts.load("20px 'DD Head'")]);
+
+  // every widget on its own, transparent
+  for (const name of Object.keys(SPECS)) {
+    const w = mount(name, 0, 0);
+    if (name === "DotStartStop") w.buttons = BUTTONS.map((b) => Object.assign({}, b));
+    if (name === "DotTimer") Object.assign(w.t, { state: "done", last100: 4.12, best100: 4.12, last200: 13.86 });
+    drive([w], 30);
+    await save(name.toLowerCase(), w.cv);
+    w.box.remove();
+  }
+
+  // the hero: a layout over the dusk road
+  const HW = 1280, HH = 640;
+  const layout = [["DotTacho", 40, 300], ["DotBoost", 360, 380], ["DotRpm", 400, 40], ["DotGearRing", 580, 440],
+                  ["DotPedalsClear", 1030, 390], ["DotStartStop", 720, 390], ["DotGMeter", 1050, 40], ["DotDash", 420, 130]];
+  const ws = layout.map(([n, x, y]) => mount(n, x, y));
+  ws.find((w) => w.name === "DotStartStop").buttons = BUTTONS.map((b) => Object.assign({}, b));
+  drive(ws, 30);
+  const hero = document.createElement("canvas");
+  hero.width = HW * 2; hero.height = HH * 2;
+  const hc = hero.getContext("2d");
+  hc.scale(2, 2);
+  backdrop(hc, HW, HH);
+  ws.forEach((w) => hc.drawImage(w.cv, w.x, w.y, w.w, w.h));
+  await save("hero", hero);
+  document.getElementById("log").textContent += "done\n";
+  window.__done = true;
+}
+run();
+</script>
+</body>
+</html>
