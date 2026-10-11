@@ -22,7 +22,7 @@ Every app resizes freely and redraws sharp at any size.
 
 | | |
 |---|---|
-| ![](docs/img/dottacho.png) | **DotTacho** - rpm and speed in one round gauge. The revs are one thick line that fades in from idle, with a short needle where the revs are; the redline lights up as you reach it and the whole line flashes at the shift point. Gear, turn signals (in yellow), ABS / TCS / handbrake, low beam / fog / high beam, water and fuel. |
+| ![](docs/img/dottacho.png) | **DotTacho** - rpm and speed in one round gauge. The revs are one thick line that fades in from idle, with a short needle where the revs are; the redline lights up as you reach it and the whole line flashes at the shift point. Gear, turn signals (in yellow), ABS / TCS / handbrake, low beam / fog / high beam as the usual lamp symbols, water and fuel. |
 | ![](docs/img/dotboost.png) | **DotBoost** - turbo pressure. Vacuum below zero in grey, boost above in white, red near the limit, a red tick holds the peak. |
 | ![](docs/img/dotstartstop.png) | **DotStartStop** - the engine button: click toggles the ignition, hold to crank. Round it, on a half circle, whatever drivetrain controls your car has, as the game reports them: diff locks (open / LSD / locked), low / high range, 2WD / 4WD, hubs, ESC, drive modes, N2O, JATO. Engaged ones get a red ring; hover for the name. |
 | ![](docs/img/dotrpm.png) | **DotRpm** - the rev line on its own, as a bar. |

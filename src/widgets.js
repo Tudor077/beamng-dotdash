@@ -57,6 +57,35 @@
     text(c, m[2], x0 + wl + gap + wn / 2, y, font("head", size), col);
   }
   root.dotGearText = gearText;
+
+  // The dashboard lamp symbols, r = half their height. The lamp body is a
+  // "D" facing right; its beams go out to the left:
+  //   lo   beams slanting down        hi   beams straight
+  //   fog  beams slanting down, crossed by a wavy line
+  function lamp(c, kind, x, y, r, col) {
+    var lw = Math.max(1.2, r * 0.2);
+    c.strokeStyle = col; c.lineWidth = lw; c.lineCap = "round"; c.lineJoin = "round";
+    var bx = x + r * 0.15;                                  // flat side of the lamp
+    c.beginPath();
+    c.moveTo(bx, y - r * 0.85);
+    c.bezierCurveTo(bx + r * 1.25, y - r * 0.85, bx + r * 1.25, y + r * 0.85, bx, y + r * 0.85);
+    c.closePath(); c.stroke();
+    var x0 = bx - r * 0.25, len = r * 0.95;
+    [-0.6, -0.2, 0.2, 0.6].forEach(function (k) {
+      var yy = y + k * r;
+      c.beginPath(); c.moveTo(x0, yy);
+      c.lineTo(x0 - len, kind === "hi" ? yy : yy + r * 0.38);
+      c.stroke();
+    });
+    if (kind === "fog") {                                   // the wavy line through the beams
+      var wx = x0 - len * 0.5;
+      c.beginPath(); c.moveTo(wx, y - r);
+      c.bezierCurveTo(wx + r * 0.35, y - r * 0.5, wx - r * 0.35, y + r * 0.0, wx, y + r * 0.35);
+      c.bezierCurveTo(wx + r * 0.35, y + r * 0.7, wx, y + r * 1.0, wx, y + r * 1.15);
+      c.stroke();
+    }
+    c.lineCap = "butt"; c.lineJoin = "miter";
+  }
   // figures in the chosen look (numfont.js): NDot, tiled grid or solid block
   function num(c, s, x, y, size, col, align) { root.dotNum(c, s, x, y, size, col, align, font); }
   function lineGauges() { return (root.DOT_STYLE || {}).gauge !== "dots"; }
@@ -156,18 +185,24 @@
 
     // a row of warning marks, lit when active
     var fs = S * 0.034, gap = S * 0.03;
+    // a row of warning marks, lit when active. Text, or a drawn lamp symbol
+    // ("lamp:lo" / "lamp:hi" / "lamp:fog") the size of a capital letter.
     var row = function (items, y) {
       c.font = font("mono", fs);
-      var total = items.reduce(function (s2, m2) { return s2 + c.measureText(m2[0]).width; }, 0) + gap * (items.length - 1);
+      var wOf = function (m2) { return m2[0].indexOf("lamp:") === 0 ? fs * 1.55 : c.measureText(m2[0]).width; };
+      var total = items.reduce(function (s2, m2) { return s2 + wOf(m2); }, 0) + gap * (items.length - 1);
       var x = cx - total / 2;
       items.forEach(function (m2) {
-        var w2 = c.measureText(m2[0]).width;
-        text(c, m2[0], x + w2 / 2, y, font("mono", fs), m2[1]);
+        var w2 = wOf(m2);
+        if (m2[0].indexOf("lamp:") === 0) lamp(c, m2[0].slice(5), x + w2 / 2, y, fs * 0.62, m2[1]);
+        else text(c, m2[0], x + w2 / 2, y, font("mono", fs), m2[1]);
+        c.font = font("mono", fs);
         x += w2 + gap;
       });
     };
     row([["ABS", d.abs ? RED : "#333"], ["TCS", d.tcs ? RED : "#333"], ["P", d.handbrake ? RED : "#333"],
-         ["LO", d.lowbeam ? WHITE : "#333"], ["FOG", d.fog ? WHITE : "#333"], ["HI", d.highbeam ? WHITE : "#333"]], cy + S * 0.29);
+         ["lamp:lo", d.lowbeam ? WHITE : "#333"], ["lamp:fog", d.fog ? WHITE : "#333"],
+         ["lamp:hi", d.highbeam ? WHITE : "#333"]], cy + S * 0.29);
     // water and fuel as readouts, red when they need you
     var hot = d.water !== undefined && d.water > 115, low = d.fuel !== undefined && d.fuel < 0.15;
     row([["H2O " + (d.waterText || (d.water === undefined ? "--" : Math.round(d.water) + "°")), hot ? RED : GREY],
