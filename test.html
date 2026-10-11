@@ -61,7 +61,7 @@ window.frame = function (o) {
   const s = {
     electrics: { wheelspeed: o.kmh / 3.6, rpmTacho: o.rpm, throttle: o.thr, brake: o.brk, clutch: o.clu || 0,
                  watertemp: o.water, oiltemp: o.oil, absActive: o.abs, tcsActive: o.tcs, parkingbrake: o.hb ? 1 : 0,
-                 signal_L: o.sl, gear: o.auto ? o.autoGear : undefined, gear_A: o.auto ? 0.6 : undefined, signal_R: o.sr, highbeam: o.hi, ignitionLevel: o.ign, engineRunning: o.run ? 1 : 0 },
+                 signal_L: o.sl, gear: o.auto ? o.autoGear : undefined, gear_A: o.auto ? 0.6 : undefined, signal_R: o.sr, highbeam: o.hi, lowbeam: o.lo ? 1 : 0, fog: o.fog ? 1 : 0, ignitionLevel: o.ign, engineRunning: o.run ? 1 : 0 },
     engineInfo: info,
     sensors: { gravity: -9.81, gx2: o.gx * 9.81, gy2: o.gy * 9.81 },
     forcedInductionInfo: { boost: o.boost, maxBoost: 180 },

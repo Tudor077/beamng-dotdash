@@ -95,7 +95,7 @@
       abs: !!e.absActive, tcs: !!e.tcsActive,
       handbrake: (e.parkingbrake || 0) > 0.5,
       signalL: !!e.signal_L, signalR: !!e.signal_R,
-      highbeam: !!e.highbeam, lowbeam: !!e.lowbeam,
+      highbeam: !!e.highbeam, lowbeam: !!e.lowbeam, fog: (e.fog || 0) > 0,
       lowfuel: !!e.lowfuel,
       ignition: e.ignitionLevel !== undefined ? e.ignitionLevel : (e.ignition ? 2 : 0),
       running: e.engineRunning !== undefined ? !!e.engineRunning : rpm > idle * 0.5,

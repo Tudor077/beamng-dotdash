@@ -148,9 +148,10 @@
 
     // turn signals either side of the gear
     var sx = S * 0.12, t = S * 0.028;
-    c.fillStyle = d.signalL ? WHITE : DIM;
+    var SIGNAL = "#FFC700";                     // turn signals in yellow
+    c.fillStyle = d.signalL ? SIGNAL : DIM;
     c.beginPath(); c.moveTo(cx - sx - t, gy); c.lineTo(cx - sx + t * 0.6, gy - t); c.lineTo(cx - sx + t * 0.6, gy + t); c.fill();
-    c.fillStyle = d.signalR ? WHITE : DIM;
+    c.fillStyle = d.signalR ? SIGNAL : DIM;
     c.beginPath(); c.moveTo(cx + sx + t, gy); c.lineTo(cx + sx - t * 0.6, gy - t); c.lineTo(cx + sx - t * 0.6, gy + t); c.fill();
 
     // a row of warning marks, lit when active
@@ -165,8 +166,8 @@
         x += w2 + gap;
       });
     };
-    row([["ABS", d.abs ? RED : "#333"], ["TCS", d.tcs ? RED : "#333"],
-         ["P", d.handbrake ? RED : "#333"], ["HI", d.highbeam ? WHITE : "#333"]], cy + S * 0.29);
+    row([["ABS", d.abs ? RED : "#333"], ["TCS", d.tcs ? RED : "#333"], ["P", d.handbrake ? RED : "#333"],
+         ["LO", d.lowbeam ? WHITE : "#333"], ["FOG", d.fog ? WHITE : "#333"], ["HI", d.highbeam ? WHITE : "#333"]], cy + S * 0.29);
     // water and fuel as readouts, red when they need you
     var hot = d.water !== undefined && d.water > 115, low = d.fuel !== undefined && d.fuel < 0.15;
     row([["H2O " + (d.waterText || (d.water === undefined ? "--" : Math.round(d.water) + "°")), hot ? RED : GREY],
