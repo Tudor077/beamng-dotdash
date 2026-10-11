@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>DotDash icon</title>
+<style>
+@font-face { font-family: "DD Head"; src: url(/ui/ui-vue/src/assets/fonts/Overpass/static/Overpass-SemiBold.ttf); }
+@font-face { font-family: "DD Mono"; src: url(/ui/ui-vue/src/assets/fonts/OverpassMono/static/OverpassMono-Regular.ttf); }
+body { margin: 0; background: #444; }
+canvas { width: 256px; height: 256px; }
+</style>
+</head>
+<body>
+<canvas id="cv" width="512" height="512"></canvas>
+<pre id="log"></pre>
+<script src="../src/numfont.js"></script>
+<script>
+// The resource icon: the rev line with its needle, the redline, and a D.
+// Drawn with the same gauge code as the apps, so it is the real look.
+(async () => {
+  await document.fonts.load("200px 'DD Head'");
+  const S = 512, c = document.getElementById("cv").getContext("2d");
+  // card: near-black, rounded like the apps
+  c.fillStyle = "#0b0b0b";
+  c.beginPath(); c.roundRect(0, 0, S, S, 96); c.fill();
+  const cx = S / 2, cy = S * 0.53, rad = S * 0.36, lw = S * 0.075;
+  const A0 = 0.75 * Math.PI, A1 = 2.25 * Math.PI;
+  dotGaugeArc(c, cx, cy, rad, lw, A0, A1, 0.78, 0.82, false, false);
+  // the gear, big, and the red dot under it
+  c.fillStyle = "#ffffff"; c.textAlign = "center"; c.textBaseline = "middle";
+  c.font = "600 230px 'DD Head', sans-serif";
+  c.fillText("D", cx, cy + S * 0.01);
+  c.fillStyle = "#D71920";
+  c.beginPath(); c.arc(cx, cy + S * 0.25, S * 0.03, 0, Math.PI * 2); c.fill();
+  const png = document.getElementById("cv").toDataURL("image/png");
+  const r = await fetch("/save", { method: "POST", body: JSON.stringify({ name: "icon", png }) });
+  document.getElementById("log").textContent = r.ok ? "saved" : "failed";
+  window.__done = true;
+})();
+</script>
+</body>
+</html>
