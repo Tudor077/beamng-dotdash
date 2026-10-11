@@ -200,13 +200,15 @@
         x += w2 + gap;
       });
     };
-    row([["ABS", d.abs ? RED : "#333"], ["TCS", d.tcs ? RED : "#333"], ["P", d.handbrake ? RED : "#333"],
-         ["lamp:lo", d.lowbeam ? WHITE : "#333"], ["lamp:fog", d.fog ? WHITE : "#333"],
-         ["lamp:hi", d.highbeam ? WHITE : "#333"]], cy + S * 0.29);
+    // warnings on their own, centred under the gear
+    row([["ABS", d.abs ? RED : "#333"], ["TCS", d.tcs ? RED : "#333"], ["P", d.handbrake ? RED : "#333"]], cy + S * 0.29);
     // water and fuel as readouts, red when they need you
     var hot = d.water !== undefined && d.water > 115, low = d.fuel !== undefined && d.fuel < 0.15;
     row([["H2O " + (d.waterText || (d.water === undefined ? "--" : Math.round(d.water) + "°")), hot ? RED : GREY],
          ["FUEL " + (d.fuel === undefined ? "--" : Math.round(d.fuel * 100) + "%"), low ? RED : GREY]], cy + S * 0.37);
+    // the lamps last, at the bottom of the gap
+    row([["lamp:lo", d.lowbeam ? WHITE : "#333"], ["lamp:fog", d.fog ? WHITE : "#333"],
+         ["lamp:hi", d.highbeam ? WHITE : "#333"]], cy + S * 0.44);
   });
 
   // ---- boost: vacuum below zero in grey, boost above in white, red near max ----
