@@ -42,6 +42,21 @@
     c.fillText(s, x, y);
   }
   function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
+
+  // A gear as the gearbox names it. "S3" / "M4" (sport / manual mode of an
+  // automatic or DCT) get the number big and the mode letter small beside it;
+  // everything else - P R N D, 1-9, R2 - is set as it is.
+  function gearText(c, g, x, y, size, col) {
+    g = g === undefined || g === null ? "N" : String(g);
+    var m = /^([SM])(\d+)$/.exec(g);
+    if (!m) { text(c, g, x, y, font("head", size * (g.length > 1 ? 0.78 : 1)), col); return; }
+    c.font = font("head", size); var wn = c.measureText(m[2]).width;
+    c.font = font("mono", size * 0.42); var wl = c.measureText(m[1]).width;
+    var gap = size * 0.05, x0 = x - (wn + gap + wl) / 2;
+    text(c, m[1], x0 + wl / 2, y - size * 0.22, font("mono", size * 0.42), m[1] === "S" ? RED : GREY);
+    text(c, m[2], x0 + wl + gap + wn / 2, y, font("head", size), col);
+  }
+  root.dotGearText = gearText;
   // figures in the chosen look (numfont.js): NDot, tiled grid or solid block
   function num(c, s, x, y, size, col, align) { root.dotNum(c, s, x, y, size, col, align, font); }
   function lineGauges() { return (root.DOT_STYLE || {}).gauge !== "dots"; }
@@ -128,7 +143,7 @@
     num(c, spd, cx, cy - S * 0.06, S * 0.2, WHITE);
     text(c, (d.speedUnit || "km/h").toUpperCase(), cx, cy + S * 0.065, font("mono", S * 0.04), GREY);
     var gy = cy + S * 0.18;
-    text(c, d.gear === undefined ? "N" : String(d.gear), cx, gy, font("head", S * 0.12), shift ? RED : WHITE);
+    gearText(c, d.gear, cx, gy, S * 0.12, shift ? RED : WHITE);
     text(c, "×1000 RPM", cx, cy - S * 0.27, font("mono", S * 0.032), MUTE);
 
     // turn signals either side of the gear
@@ -299,9 +314,13 @@
       for (var i = 1; i <= d.gearsF; i++) items.push(String(i));
       cur = d.gearIndex < 0 ? "R" : d.gearIndex === 0 ? "N" : String(d.gearIndex);
     } else {
-      items = ["P", "R", "N", "D", "2", "1"];
+      // automatic / DCT: the selector positions. In sport or manual mode the
+      // S or M slot lights and carries the gear ("S3", "M4").
+      items = ["P", "R", "N", "D", "S", "M"];
       cur = String(d.gear || "N");
-      if (items.indexOf(cur) < 0) items.push(cur);
+      var mode = /^([SM])(\d+)$/.exec(cur);
+      if (mode) { items[items.indexOf(mode[1])] = cur; }
+      else if (items.indexOf(cur) < 0) items.push(cur);       // "1", "2" low ranges
     }
     var at = items.indexOf(cur);
     var maxRpm = d.maxRpm > 0 ? d.maxRpm : 7000;
@@ -315,7 +334,7 @@
       if (k === at) {
         rr(c, x - pw / 2, cy - ph / 2, pw, ph, Math.min(pw, ph) * 0.3);
         c.fillStyle = shift && blink ? RED : WHITE; c.fill();
-        text(c, g, x, cy + fs * 0.04, font("head", fs), shift && blink ? WHITE : "#000");
+        gearText(c, g, x, cy + fs * 0.04, fs * (g.length > 1 ? 0.8 : 1), shift && blink ? WHITE : "#000");
       } else {
         var next = hint && k === at + 1;
         if (next) {
@@ -331,11 +350,10 @@
   // Flashes red at the shift point; nothing else on it.
   root.DotGear = make(function (c, W, H, now, d) {
     this.card(c);
-    var g = d.gear === undefined ? "N" : String(d.gear);
     var maxRpm = d.maxRpm > 0 ? d.maxRpm : 7000;
     var shift = (d.rpm || 0) >= maxRpm * 0.95 && Math.floor(now / 90) % 2;
     var S = Math.min(W, H);
-    text(c, g, W / 2, H / 2 + S * 0.04, font("head", S * (g.length > 1 ? 0.5 : 0.72)), shift ? RED : WHITE);
+    gearText(c, d.gear, W / 2, H / 2 + S * 0.04, S * 0.72, shift ? RED : WHITE);
   });
 
   // ---- rpm bar: the glyph row on its own, with the rpm in dot digits ------
@@ -374,8 +392,7 @@
     var rr2 = R * 0.82, lw = Math.max(4, S * 0.07);
     root.dotGaugeArc(c, cx, cy, rr2, lw, -Math.PI / 2, Math.PI * 1.5, frac, 0.82, shift, blink);
     if (blink) { c.beginPath(); c.arc(cx, cy, rr2 - lw * 1.2, 0, TAU); c.fillStyle = RED; c.fill(); }
-    text(c, d.gear === undefined ? "N" : String(d.gear), cx, cy + S * 0.03,
-         font("head", S * 0.5), WHITE);
+    gearText(c, d.gear, cx, cy + S * 0.03, S * 0.5, WHITE);
   });
 
   // ---- info: water, oil, fuel --------------------------------------------------

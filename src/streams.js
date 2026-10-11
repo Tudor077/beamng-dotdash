@@ -11,7 +11,11 @@
       var g = info[5];
       return g > 0 ? String(g) : g < 0 ? 'R' : 'N';
     }
+    // electrics.gear is what the gearbox itself calls the gear:
+    //   automatic / DCT  "P" "R" "N" "D", "S3" (sport, 3rd), "M4" (manual mode, 4th), "1" "2"
+    //   sequential       a plain number (2), 0 for neutral, -1 for reverse
     if (typeof e.gear === 'string' && e.gear.length) return e.gear;
+    if (typeof e.gear === 'number' && isFinite(e.gear)) return e.gear > 0 ? String(e.gear) : e.gear < 0 ? 'R' : 'N';
     if (e.gear_A !== undefined) return GEARS_A[Math.round(e.gear_A * 5)] || 'D';
     if (info && info[5] !== undefined) {
       var n = info[5];

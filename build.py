@@ -75,7 +75,7 @@ def app_json(name, directive, size, interactive, desc):
         "css": {"left": "20px", "top": "120px", "width": f"{w}px", "height": f"{h}px",
                 "min-width": f"{max(60, w // 2)}px", "min-height": f"{max(60, h // 2)}px"},
         "author": "Tudor077",
-        "version": "1.0.0",
+        "version": "1.0.1",
         "directive": directive,
         "category": "Dashboard",
         "isAuxiliary": False,
@@ -142,7 +142,7 @@ def build(with_fonts=True):
                   open(os.path.join(out, "app.json"), "w", encoding="utf-8"), indent=2)
         icon(os.path.join(out, "app.png"), name)
         print(f"  {name:13s} {len(js) // 1024:4d} KB  streams {', '.join(streams_list)}")
-    json.dump({"name": "DotDash", "author": "Tudor077", "version": "1.0.0",
+    json.dump({"name": "DotDash", "author": "Tudor077", "version": "1.0.1",
                "description": "Dot-matrix dashboard UI apps: one combined card, or every gauge on its own."},
               open(os.path.join(root, "info.json"), "w", encoding="utf-8"), indent=2)
     print(f"built {len(APPS)} apps, private fonts {'in (private build)' if 'base64' in fonts else 'out (public build)'}")

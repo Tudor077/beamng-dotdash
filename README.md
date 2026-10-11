@@ -28,13 +28,15 @@ Every app resizes freely and redraws sharp at any size.
 | ![](docs/img/dotrpm.png) | **DotRpm** - the rev line on its own, as a bar. |
 | ![](docs/img/dotgearring.png) | **DotGearRing** - the gear inside a ring of revs. |
 | ![](docs/img/dotgear.png) | **DotGear** - just the gear, in a box. |
-| ![](docs/img/dotgears.png) | **DotGears** - every gear of the box on one row; near the limiter the next one lights red. |
+| ![](docs/img/dotgears.png) | **DotGears** - every gear of the box on one row: R N 1-6 for manuals and sequentials, P R N D S M for automatics and DCTs (in sport or manual mode the S / M slot carries the gear - S3, M4). Near the limiter the next gear lights red. |
 | ![](docs/img/dotpedals.png) | **DotPedals** - clutch, brake, throttle, handbrake as solid bars with 0-100 %. The brake flickers when ABS works, the throttle when TCS cuts in. |
 | ![](docs/img/dotpedalsclear.png) | **DotPedalsClear** - the same with no background and the % inside each bar, outlined to read over any scenery. |
 | ![](docs/img/dotgmeter.png) | **DotGMeter** - lateral and longitudinal G, with a trail and the peak. |
 | ![](docs/img/dotinfo.png) | **DotInfo** - water, oil, fuel. |
 | ![](docs/img/dottimer.png) | **DotTimer** - 0-100 and 0-200 km/h (0-60 / 0-120 mph), arming itself whenever you stop; the session best in red. |
 | ![](docs/img/dotdash.png) | **DotDash** - everything on one card. |
+
+**Every gearbox reads right**: manual and sequential gears as numbers, automatics and DCTs as P R N D, and in sport / manual mode S1-Sn / M1-Mn - the number big, the mode letter small beside it - on the tacho, the gear box, the gear ring and the combined card.
 
 **Units follow the game's options**: km/h or mph, bar / kPa / psi / inHg,
 °C / °F. Warnings stay right whatever is on screen (water over 115 °C is hot
