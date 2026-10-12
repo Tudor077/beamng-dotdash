@@ -9,6 +9,12 @@ The game wants one app.js per app, so for each app the pieces are joined:
     font faces  +  src/numfont.js  +  src/streams.js  +  the renderer
     (src/widgets.js, or src/dash.js for the combined card)  +  src/apps.js
 
+Also in the mod: lua/vehicle/protocols/corsaconnect.lua, CorsaConnect's
+protocol. It sends the car's idle rpm and rev limiter to UDP 4446 on this PC,
+where the CorsaConnect server fits the phone's tach to them. The original
+lives in the CorsaConnect repo (beamng/); if that's checked out next to this
+one, the build warns when the copies differ.
+
 Fonts: the public build ships none - it uses Overpass and Overpass Mono,
 which come with BeamNG itself. Font files you put in fonts/ (see FONTS below)
 are embedded only in your own private build; don't share that one.
@@ -142,11 +148,27 @@ def build(with_fonts=True):
                   open(os.path.join(out, "app.json"), "w", encoding="utf-8"), indent=2)
         icon(os.path.join(out, "app.png"), name)
         print(f"  {name:13s} {len(js) // 1024:4d} KB  streams {', '.join(streams_list)}")
+    protocol(root)
     json.dump({"name": "DotDash", "author": "Tudor077", "version": "1.0",
                "description": "Dot-matrix dashboard UI apps: one combined card, or every gauge on its own."},
               open(os.path.join(root, "info.json"), "w", encoding="utf-8"), indent=2)
     print(f"built {len(APPS)} apps, private fonts {'in (private build)' if 'base64' in fonts else 'out (public build)'}")
     return root
+
+
+PROTOCOL = os.path.join("lua", "vehicle", "protocols", "corsaconnect.lua")
+
+
+def protocol(root):
+    """Copy the CorsaConnect protocol into the mod, checking it against the original."""
+    ours = os.path.join(HERE, PROTOCOL)
+    theirs = os.path.join(HERE, "..", "CorsaConnect", "beamng", PROTOCOL)
+    text = open(ours, encoding="utf-8").read()
+    if os.path.exists(theirs) and open(theirs, encoding="utf-8").read() != text:
+        print("  WARNING: lua/vehicle/protocols/corsaconnect.lua differs from CorsaConnect/beamng/ - copy it over")
+    os.makedirs(os.path.dirname(os.path.join(root, PROTOCOL)))
+    shutil.copy(ours, os.path.join(root, PROTOCOL))
+    print("  + CorsaConnect protocol (UDP 4446)")
 
 
 def install(src):

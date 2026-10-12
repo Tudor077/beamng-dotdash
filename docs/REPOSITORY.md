@@ -39,6 +39,12 @@ inside, it uses the game's own).
     Each app is a single canvas redrawn only when new data arrives - light on
     the UI.
 
+    [B]CorsaConnect:[/B] DotDash also sends the car's idle rpm and rev limiter to
+    UDP 4446 on your own PC (127.0.0.1) for CorsaConnect, the phone wheel and
+    dash app (github.com/Tudor077/CorsaConnect). Nothing else, nowhere else;
+    with no CorsaConnect running it does nothing. Off with Options -> Other ->
+    Protocols -> Other protocols.
+
     [B]Install:[/B] put the zip in your mods folder, then UI Apps -> search "Dot".
 
     Source and issues: https://github.com/Tudor077/beamng-dotdash

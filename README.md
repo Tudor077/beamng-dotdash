@@ -42,6 +42,20 @@ Every app resizes freely and redraws sharp at any size.
 °C / °F. Warnings stay right whatever is on screen (water over 115 °C is hot
 in Fahrenheit too).
 
+## CorsaConnect
+
+DotDash also carries the protocol of [CorsaConnect](https://github.com/Tudor077/CorsaConnect),
+the app that turns a phone into a steering wheel and dash. BeamNG's OutGauge
+sends the rpm but not the car's rpm range, so the protocol sends the rest:
+idle rpm and the rev limiter, the same numbers DotDash's own gauges use, to
+UDP port 4446 on your own PC (127.0.0.1), four times a second. CorsaConnect
+fits the phone's tach to them; with nothing listening the packets go nowhere.
+It reads nothing else and sends nowhere else.
+
+It runs under **Options -> Other -> Protocols -> Other protocols**, which is on
+by default; untick that to turn it off. The source is
+`lua/vehicle/protocols/corsaconnect.lua`.
+
 ## Performance
 
 Each app is one canvas, redrawn only when the game sends new data. Angular
@@ -71,6 +85,7 @@ this README from the real renderer.
 | `src/streams.js` | the game's streams to plain numbers, and the unit conversions |
 | `src/apps.js` | one Angular directive per app; the start/stop and drivetrain clicks |
 | `build.py` | joins it all into each app's `app.js` |
+| `lua/vehicle/protocols/corsaconnect.lua` | the CorsaConnect protocol (see above) |
 
 Data comes from the same streams the stock apps read: `electrics`,
 `engineInfo`, `sensors`, `forcedInductionInfo`. The drivetrain buttons come
