@@ -99,7 +99,3 @@ Mono**, which are already part of BeamNG's UI. For your own copy you can drop
 other font files into `fonts/` (names in `build.py`, `FONTS`); a plain
 `python build.py` embeds them. Don't share a build that contains fonts you
 aren't allowed to redistribute - `--public` leaves them out.
-
-## Credits
-
-Made by Tudor077, with Claude.
