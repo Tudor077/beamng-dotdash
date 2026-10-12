@@ -30,6 +30,8 @@ import zipfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 APP = "DotDash"
 MOD = "dotdash"
+# Bump for every upload to the BeamNG Repository (1.1: the CorsaConnect protocol).
+VERSION = "1.1"
 USER = os.path.join(os.environ["LOCALAPPDATA"], "BeamNG", "BeamNG.drive", "current")
 FONTS = [("NType82 Headline", "NType82-Headline.woff2", "woff2"),
          ("NType82 Mono", "NType82Mono-Regular.woff2", "woff2"),
@@ -81,7 +83,7 @@ def app_json(name, directive, size, interactive, desc):
         "css": {"left": "20px", "top": "120px", "width": f"{w}px", "height": f"{h}px",
                 "min-width": f"{max(60, w // 2)}px", "min-height": f"{max(60, h // 2)}px"},
         "author": "Tudor077",
-        "version": "1.0",
+        "version": VERSION,
         "directive": directive,
         "category": "Dashboard",
         "isAuxiliary": False,
@@ -149,7 +151,7 @@ def build(with_fonts=True):
         icon(os.path.join(out, "app.png"), name)
         print(f"  {name:13s} {len(js) // 1024:4d} KB  streams {', '.join(streams_list)}")
     protocol(root)
-    json.dump({"name": "DotDash", "author": "Tudor077", "version": "1.0",
+    json.dump({"name": "DotDash", "author": "Tudor077", "version": VERSION,
                "description": "Dot-matrix dashboard UI apps: one combined card, or every gauge on its own."},
               open(os.path.join(root, "info.json"), "w", encoding="utf-8"), indent=2)
     print(f"built {len(APPS)} apps, private fonts {'in (private build)' if 'base64' in fonts else 'out (public build)'}")
