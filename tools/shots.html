@@ -36,6 +36,30 @@ const SPECS = {
   DotGearRing: [DotGearRing, 120, 120], DotGear: [DotGear, 90, 90], DotGears: [DotGears, 340, 80],
   DotPedals: [DotPedals, 220, 200], DotPedalsClear: [DotPedalsClear, 200, 190],
   DotInfo: [DotInfo, 260, 120], DotTimer: [DotTimer, 260, 120],
+  DotShift: [DotShift, 420, 54], DotDrift: [DotDrift, 300, 200], DotLap: [DotLap, 300, 130], DotMap: [DotMap, 220, 220],
+};
+
+// a made-up town for DotMap: a street grid, a winding main road, a dirt track
+function town() {
+  const rd = [];
+  for (let i = -10; i <= 10; i++) { rd.push(i * 80, -800, i * 80, 800, 8, 0.7); rd.push(-800, i * 80, 800, i * 80, 8, 0.7); }
+  for (let a = 0; a < 60; a++) rd.push(Math.cos(a / 10) * 300 - 150, a * 25 - 700, Math.cos((a + 1) / 10) * 300 - 150, (a + 1) * 25 - 700, 14, 1);
+  for (let a = 0; a < 30; a++) rd.push(a * 20 + 40, Math.sin(a / 3) * 40 + 40, a * 20 + 60, Math.sin((a + 1) / 3) * 40 + 40, 4, 0);
+  return rd;
+}
+// what each widget needs beyond the streams, before and after driving
+const SETUP = {
+  DotStartStop: (w) => { w.buttons = BUTTONS.map((b) => Object.assign({}, b)); },
+  DotMap: (w) => {
+    w.setRoads(town());
+    w.cars = [{ x: 30, y: 10, dx: Math.cos(0.6), dy: Math.sin(0.6), me: true }, { x: 80, y: 60, dx: 1, dy: 0 }, { x: -40, y: 110, dx: 0, dy: 1 }];
+  },
+};
+const AFTER = {
+  // after: the first frame resets the timer (it checks the speed unit)
+  DotTimer: (w) => { Object.assign(w.t, { state: "done", last100: 4.12, best100: 4.12, last200: 13.86 }); },
+  DotDrift: (w) => { w.peak = { deg: 41, side: 1 }; w.draw(clock); },
+  DotLap: (w) => { Object.assign(w.L, { line: { x: 0, y: 0, dx: 1, dy: 0 }, t0: w.L.clock - 47.31, n: 3, last: 49.02, best: 48.66, delta: -0.37 }); },
 };
 function mount(name, x, y) {
   const [Cls, w, h] = SPECS[name];
@@ -63,6 +87,7 @@ function state(i) {           // a hard pull out of a corner, frame i of 30
     gx: 0.85 * (1 - k) + 0.05, gy: 0.18 + 0.12 * k, water: 92, oil: 104, waterText: "92°", oilText: "104°",
     fuel: 0.58, abs: false, tcs: false, signalL: false, signalR: true, highbeam: true,
     ignition: 2, running: true, boostKpa: 70 + 60 * k, maxBoostKpa: 160,
+    drift: 27, px: 30, py: 10,
   };
 }
 function drive(widgets, frames) {
@@ -96,9 +121,9 @@ async function run() {
   // every widget on its own, transparent
   for (const name of Object.keys(SPECS)) {
     const w = mount(name, 0, 0);
-    if (name === "DotStartStop") w.buttons = BUTTONS.map((b) => Object.assign({}, b));
-    if (name === "DotTimer") Object.assign(w.t, { state: "done", last100: 4.12, best100: 4.12, last200: 13.86 });
+    if (SETUP[name]) SETUP[name](w);
     drive([w], 30);
+    if (AFTER[name]) { AFTER[name](w); w.draw(clock); }
     await save(name.toLowerCase(), w.cv);
     w.box.remove();
   }

@@ -30,8 +30,9 @@ import zipfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 APP = "DotDash"
 MOD = "dotdash"
-# Bump for every upload to the BeamNG Repository (1.1: the CorsaConnect protocol).
-VERSION = "1.1"
+# Bump for every upload to the BeamNG Repository (1.1: the CorsaConnect protocol;
+# 1.2: DotShift, DotDrift, DotMap, DotLap, D3 on automatics and DCTs, app thumbnails).
+VERSION = "1.2"
 USER = os.path.join(os.environ["LOCALAPPDATA"], "BeamNG", "BeamNG.drive", "current")
 FONTS = [("NType82 Headline", "NType82-Headline.woff2", "woff2"),
          ("NType82 Mono", "NType82Mono-Regular.woff2", "woff2"),
@@ -65,7 +66,17 @@ APPS = [
      "Water, oil and fuel."),
     ("DotTimer", "dotTimer", "DotTimer", "base", (260, 120), False,
      "0-100 and 0-200 km/h, arming itself at a standstill; session best in red."),
+    ("DotShift", "dotShift", "DotShift", "base", (420, 54), False,
+     "Shift lights: a Glyph strip that fills from both ends towards the middle and flashes red at the shift point."),
+    ("DotDrift", "dotDrift", "DotDrift", "base+g", (300, 200), False,
+     "Drift angle on an arc, lit on the side the nose points, with the biggest angle so far held in red."),
+    ("DotMap", "dotMap", "DotMap", "base", (220, 220), False,
+     "Minimap: the roads round your car, heading up, your car in red, other cars as white dots, north in red; zooms out with speed."),
+    ("DotLap", "dotLap", "DotLap", "base+g", (300, 130), True,
+     "Lap timer: click it to set the start / finish line where you are, then laps, last, best and a live delta to your best lap."),
 ]
+# the adapter function wiring an app to the game beyond the streams (apps.js)
+LINKS = {"DotStartStop": "startStopLink", "DotDrift": "driftLink", "DotLap": "lapLink", "DotMap": "mapLink"}
 STREAMS = {"base": ["electrics", "engineInfo"], "g": ["sensors"], "boost": ["forcedInductionInfo"]}
 
 
@@ -112,9 +123,26 @@ def font_js(with_fonts):
 
 
 def icon(path, label):
-    """The app list thumbnail, 300x144 like the stock ones: a dot row and the name."""
+    """The app list thumbnail, 300x144 like the stock ones: the app itself, from
+    its shot in docs/img (tools/shots.html makes them), on a grey that lets the
+    black cards show. Without a shot: a dot row and the name."""
     from PIL import Image, ImageDraw, ImageFont
     W, H = 300, 144
+    shot = os.path.join(HERE, "docs", "img", label.lower() + ".png")
+    if os.path.exists(shot):
+        im = Image.new("RGB", (W, H))
+        d = ImageDraw.Draw(im)
+        for y in range(H):                                   # a soft top-to-bottom grey
+            k = y / (H - 1)
+            v = (int(78 - 34 * k), int(86 - 36 * k), int(96 - 40 * k))
+            d.line([(0, y), (W, y)], fill=v)
+        app = Image.open(shot).convert("RGBA")
+        pad = 10
+        f = min((W - pad * 2) / app.width, (H - pad * 2) / app.height)
+        app = app.resize((max(1, round(app.width * f)), max(1, round(app.height * f))), Image.LANCZOS)
+        im.paste(app, ((W - app.width) // 2, (H - app.height) // 2), app)
+        im.save(path)
+        return
     im = Image.new("RGB", (W, H), (0, 0, 0))
     d = ImageDraw.Draw(im)
     n = 20
@@ -142,7 +170,7 @@ def build(with_fonts=True):
         lib = src("dash.js") if cls == "DotDash" else src("widgets.js")
         streams_list = [x for k in streams.split("+") for x in STREAMS[k]]
         reg = (f"dotApp({json.dumps(directive)}, {cls}, {json.dumps(streams_list)}"
-               + (", { link: startStopLink, unlink: function (r, w) { if (w._unbind) w._unbind() } }" if interactive else "")
+               + (f", {{ link: {LINKS[name]}, unlink: function (r, w) {{ if (w._unbind) w._unbind() }} }}" if name in LINKS else "")
                + ")" + chr(10))
         js = chr(10).join([fonts, src("numfont.js"), src("streams.js"), lib, src("apps.js"), reg])
         open(os.path.join(out, "app.js"), "w", encoding="utf-8").write(js)
@@ -159,6 +187,9 @@ def build(with_fonts=True):
 
 
 PROTOCOL = os.path.join("lua", "vehicle", "protocols", "corsaconnect.lua")
+# our own Lua: the drift angle (vehicle side) and DotMap's roads and cars (game side)
+EXTENSIONS = [os.path.join("lua", "vehicle", "extensions", "dotdash.lua"),
+              os.path.join("lua", "ge", "extensions", "dotdashMap.lua")]
 
 
 def protocol(root):
@@ -171,6 +202,10 @@ def protocol(root):
     os.makedirs(os.path.dirname(os.path.join(root, PROTOCOL)))
     shutil.copy(ours, os.path.join(root, PROTOCOL))
     print("  + CorsaConnect protocol (UDP 4446)")
+    for ext in EXTENSIONS:
+        os.makedirs(os.path.dirname(os.path.join(root, ext)), exist_ok=True)
+        shutil.copy(os.path.join(HERE, ext), os.path.join(root, ext))
+        print("  +", ext.replace(os.sep, "/"))
 
 
 def install(src):

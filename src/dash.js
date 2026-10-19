@@ -192,9 +192,9 @@
     // rpm progress around the ring
     c.beginPath(); c.arc(gx0, gy0, ringR + 5, -Math.PI / 2, -Math.PI / 2 + frac * 6.283);
     c.strokeStyle = frac >= 0.82 ? RED : WHITE; c.lineWidth = 2.5; c.stroke();
-    const g = d.gear === undefined ? "N" : String(d.gear), m = /^([SM])(\d+)$/.exec(g);
+    const g = d.gear === undefined ? "N" : String(d.gear), m = /^([DSM])(\d+)$/.exec(g);
     c.textAlign = "center"; c.textBaseline = "middle";
-    if (m) {   // "S3" / "M4": the number big, the mode letter small beside it
+    if (m) {   // "D3" / "S3" / "M4": the number big, the mode letter small beside it
       c.font = this._font("head", ringR * 1.05); const wn = c.measureText(m[2]).width;
       c.fillStyle = WHITE; c.fillText(m[2], gx0 + ringR * 0.12, gy0 + ringR * 0.06);
       c.font = this._font("mono", ringR * 0.42);

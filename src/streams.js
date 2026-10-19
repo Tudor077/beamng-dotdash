@@ -6,21 +6,35 @@
   "use strict";
   var GEARS_A = ['P', 'R', 'N', 'D', '2', '1'];
 
+  // The gearbox's own name for the gear: electrics.gear, the same value as
+  // engineInfo[5]. (engineInfo[13] says "manual" for every car - the game never
+  // updates it - so it can't tell a DCT from a manual.)
+  //   manual / sequential  a number: 3, 0 for neutral, -1 for reverse
+  //   automatic / DCT      "P" "R" "N" "D", "S3" (sport, 3rd), "M4" (manual mode, 4th), "1" "2"
+  //   CVT / electric       "P" "R" "N" "D"
+  function rawGear(e, info) {
+    if (e.gear !== undefined && e.gear !== null && e.gear !== '') return e.gear;
+    if (info && info[5] !== undefined && info[5] !== null) return info[5];
+    return undefined;
+  }
+
+  function isSelector(e, info) {          // P R N D lever, not a stick with numbers
+    return typeof rawGear(e, info) === 'string';   // a manual's gear comes as a number
+  }
+
   function gearOf(e, info) {
-    if (info && info[13] === 'manual') {
-      var g = info[5];
-      return g > 0 ? String(g) : g < 0 ? 'R' : 'N';
+    var g = rawGear(e, info);
+    if (typeof g === 'string') {
+      // In D an automatic or DCT is still in a real gear - show it ("D3"),
+      // unless the box has only one (electric) or none (CVT).
+      if (g === 'D' && e.gearIndex > 0 && e.maxGearIndex > 1) return 'D' + e.gearIndex;
+      return g;
     }
-    // electrics.gear is what the gearbox itself calls the gear:
-    //   automatic / DCT  "P" "R" "N" "D", "S3" (sport, 3rd), "M4" (manual mode, 4th), "1" "2"
-    //   sequential       a plain number (2), 0 for neutral, -1 for reverse
-    if (typeof e.gear === 'string' && e.gear.length) return e.gear;
-    if (typeof e.gear === 'number' && isFinite(e.gear)) return e.gear > 0 ? String(e.gear) : e.gear < 0 ? 'R' : 'N';
+    if (g !== undefined) {
+      var n = Number(g);
+      if (isFinite(n)) return n > 0 ? String(n) : n < 0 ? 'R' : 'N';
+    }
     if (e.gear_A !== undefined) return GEARS_A[Math.round(e.gear_A * 5)] || 'D';
-    if (info && info[5] !== undefined) {
-      var n = info[5];
-      return n > 0 ? String(n) : n < 0 ? 'R' : 'N';
-    }
     return 'N';
   }
 
@@ -82,10 +96,10 @@
       rpm: rpm, maxRpm: info ? info[1] : 0, idleRpm: idle,
       gear: gearOf(e, info),
       // for the gear row: what the box has and where it is
-      gearbox: info ? info[13] : undefined,
-      gearIndex: info ? info[5] : 0,
-      gearsF: info && info[6] > 0 ? info[6] : 0,
-      gearsR: info && info[7] > 0 ? info[7] : 0,
+      gearbox: isSelector(e, info) ? 'auto' : 'manual',
+      gearIndex: e.gearIndex !== undefined ? e.gearIndex : (Number(rawGear(e, info)) || 0),
+      gearsF: e.maxGearIndex > 0 ? e.maxGearIndex : (info && info[6] > 0 ? info[6] : 0),
+      gearsR: e.minGearIndex < 0 ? -e.minGearIndex : (info && info[7] < 0 ? -info[7] : 0),
       parkingbrake: e.parkingbrake || 0,
       throttle: e.throttle || 0, brake: e.brake || 0, clutch: e.clutch || 0,
       gx: gx, gy: gy,
@@ -99,7 +113,11 @@
       lowfuel: !!e.lowfuel,
       ignition: e.ignitionLevel !== undefined ? e.ignitionLevel : (e.ignition ? 2 : 0),
       running: e.engineRunning !== undefined ? !!e.engineRunning : rpm > idle * 0.5,
-      boostKpa: boostKpa, maxBoostKpa: maxBoostKpa
+      boostKpa: boostKpa, maxBoostKpa: maxBoostKpa,
+      // for the race apps
+      drift: e.dotDrift,                                                   // degrees, from lua/vehicle/extensions/dotdash.lua
+      px: s.sensors && s.sensors.position ? s.sensors.position.x : undefined,
+      py: s.sensors && s.sensors.position ? s.sensors.position.y : undefined
     };
   };
 })(typeof window !== "undefined" ? window : this);

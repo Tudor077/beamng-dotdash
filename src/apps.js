@@ -105,3 +105,30 @@ function startStopLink(root, w, scope) {
     root.removeEventListener('mouseleave', leave)
   }
 }
+
+// DotDrift: the drift angle comes from our vehicle extension
+// (lua/vehicle/extensions/dotdash.lua), which has to be loaded into whichever
+// car is driven - again after a vehicle change or switching cars.
+function driftLink(root, w, scope) {
+  var load = function () { bngApi.activeObjectLua('extensions.load("dotdash")') }
+  scope.$on('VehicleChange', load)
+  scope.$on('VehicleFocusChanged', load)
+  load()
+}
+
+// DotLap: a click sets the start / finish line where the car is now.
+function lapLink(root, w, scope) {
+  var press = function (e) { e.preventDefault(); w.setLine() }
+  root.style.cursor = 'pointer'
+  root.addEventListener('mousedown', press)
+  w._unbind = function () { root.removeEventListener('mousedown', press) }
+}
+
+// DotMap: our game-side extension (lua/ge/extensions/dotdashMap.lua) sends the
+// roads once per map and the cars every frame, only while this app is shown.
+function mapLink(root, w, scope) {
+  bngApi.engineLua('extensions.load("dotdashMap") dotdashMap.requestRoads()')
+  scope.$on('DotMapRoads', function (event, roads) { w.setRoads(roads) })
+  scope.$on('DotMapCars', function (event, cars) { w.cars = cars })
+  w._unbind = function () { bngApi.engineLua('extensions.unload("dotdashMap")') }
+}

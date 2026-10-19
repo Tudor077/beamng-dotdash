@@ -4,7 +4,7 @@ A set of minimal, sporty UI apps for **BeamNG.drive** - black glass, white and
 one red, rev gauges drawn as a single thick line with a needle, and a
 start / stop button that carries your car's drivetrain controls.
 
-Thirteen apps, each placed, sized and hidden on its own, or all of it on one
+Seventeen apps, each placed, sized and hidden on its own, or all of it on one
 card.
 
 ![DotDash](docs/img/hero.png)
@@ -34,9 +34,13 @@ Every app resizes freely and redraws sharp at any size.
 | ![](docs/img/dotgmeter.png) | **DotGMeter** - lateral and longitudinal G, with a trail and the peak. |
 | ![](docs/img/dotinfo.png) | **DotInfo** - water, oil, fuel. |
 | ![](docs/img/dottimer.png) | **DotTimer** - 0-100 and 0-200 km/h (0-60 / 0-120 mph), arming itself whenever you stop; the session best in red. |
+| ![](docs/img/dotshift.png) | **DotShift** - shift lights: a Glyph strip that fills from both ends towards the middle, white then red, and flashes red at the shift point. |
+| ![](docs/img/dotdrift.png) | **DotDrift** - the drift angle on an arc, lit on the side the nose points, white then red past 60°; the biggest angle so far stays as a red dot. |
+| ![](docs/img/dotmap.png) | **DotMap** - a minimap in the dash's style: the roads round your car, heading up, your car as a red arrow, other cars as white dots, north marked in red. It zooms out as you speed up. |
+| ![](docs/img/dotlap.png) | **DotLap** - a lap timer for any road: click it where the lap should start and it puts a start / finish line across the road there. Lap time, last, best, and a live delta to your best lap (white ahead, red behind). |
 | ![](docs/img/dotdash.png) | **DotDash** - everything on one card. |
 
-**Every gearbox reads right**: manual and sequential gears as numbers, automatics and DCTs as P R N D, and in sport / manual mode S1-Sn / M1-Mn - the number big, the mode letter small beside it - on the tacho, the gear box, the gear ring and the combined card.
+**Every gearbox reads right**: manual and sequential gears as numbers, automatics and DCTs as P R N D with the gear they are in (D3), and in sport / manual mode S1-Sn / M1-Mn - the number big, the mode letter small beside it - on the tacho, the gear box, the gear ring and the combined card.
 
 **Units follow the game's options**: km/h or mph, bar / kPa / psi / inHg,
 °C / °F. Warnings stay right whatever is on screen (water over 115 °C is hot

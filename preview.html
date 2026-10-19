@@ -40,13 +40,16 @@ body {
 <script>
 const LAYOUT = [["DotDash", DotDash, 560, 215], ["DotTacho", DotTacho, 300, 300], ["DotRpm", DotRpm, 460, 56],
   ["DotGearRing", DotGearRing, 130, 130], ["DotBoost", DotBoost, 190, 190], ["DotTimer", DotTimer, 260, 120],
-  ["DotInfo", DotInfo, 260, 120], ["DotPedalsClear", DotPedalsClear, 200, 190]];
+  ["DotInfo", DotInfo, 260, 120], ["DotPedalsClear", DotPedalsClear, 200, 190],
+  ["DotShift", DotShift, 420, 54], ["DotDrift", DotDrift, 300, 200], ["DotLap", DotLap, 300, 130]];
 const widgets = LAYOUT.map(([name, Cls, w, h]) => {
   const box = document.createElement("div");
   box.className = "w"; box.style.width = w + "px"; box.style.height = h + "px";
   box.innerHTML = `<span>${name}</span><canvas></canvas>`;
   document.getElementById("grid").appendChild(box);
-  return new Cls(box.querySelector("canvas"));
+  const widget = new Cls(box.querySelector("canvas"));
+  if (widget.setLine) box.onmousedown = () => widget.setLine();      // DotLap: click sets the line, as in the game
+  return widget;
 });
 document.fonts && document.fonts.ready.then(() => widgets.forEach((w) => w.resize()));
 
@@ -61,6 +64,7 @@ seg("gauge", "line", (v) => { DOT_STYLE.gauge = v; });
 
 // a crude car: six gears, an engine between idle and the limiter, a scripted driver
 const RATIOS = [3.6, 2.2, 1.55, 1.2, 0.98, 0.82], FINAL = 3.7, WHEEL_R = 0.33, MAX = 7600, IDLE = 850;
+let px = 0, py = 0, hdg = 0;
 let mode = "track", v = 0, gear = 1, t = 0, rpm = IDLE, water = 70, oil = 70, fuel = 0.64, lastShift = -1, boost = 0;
 seg("mode", "track", (m) => { mode = m; if (m === "launch") { v = 0; gear = 1; t = 0; lastShift = -1; } });
 
@@ -82,6 +86,7 @@ function step(dt) {
   const push = shifting ? 0 : thr * 9.5 * RATIOS[gear - 1] / 3.6 * (engine < MAX ? 1 : 0);
   const a = push - brk * 11 - 0.0006 * v * v - 0.25;
   v = Math.max(0, v + a * dt);
+  hdg += steer * 2.9 * dt; px += Math.cos(hdg) * v * dt; py += Math.sin(hdg) * v * dt;   // a lap every 14 s
   rpm += ((thr > 0 && v < 0.5 ? IDLE + thr * 4000 : engine) - rpm) * Math.min(1, dt * 18);
   boost += ((thr > 0.5 ? (rpm / MAX) * 170 : -55) - boost) * Math.min(1, dt * 3);
   water += ((70 + 22 * Math.min(1, t / 40)) - water) * dt * 0.05;
@@ -89,7 +94,8 @@ function step(dt) {
   const d = { speed: v, rpm, maxRpm: MAX, gear: v < 0.3 && thr === 0 ? "N" : String(gear), throttle: thr, brake: brk,
     clutch: shifting ? 1 : 0, parkingbrake: mode === "idle" ? 1 : 0, gx: steer * Math.min(1.3, v * v / 600), gy: a / 9.81,
     water, oil, waterText: Math.round(water) + "°", oilText: Math.round(oil) + "°", fuel,
-    gearbox: "manual", gearIndex: gear, gearsF: 6, boostKpa: boost, maxBoostKpa: 160 };
+    gearbox: "manual", gearIndex: gear, gearsF: 6, boostKpa: boost, maxBoostKpa: 160,
+    drift: v > 3 ? steer * 32 : 0, px, py };
   widgets.forEach((w) => w.update(d));
 }
 let last = performance.now();

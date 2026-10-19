@@ -12,7 +12,7 @@ inside, it uses the game's own).
 
 **Tag line** (one sentence)
 
-    Thirteen clean black-glass UI apps: a line-and-needle tacho, boost, pedals, G meter, timers, and a start/stop button with your car's drivetrain controls.
+    Seventeen clean black-glass UI apps: a line-and-needle tacho, boost, pedals, G meter, timers, shift lights, a drift angle meter, a minimap, a lap timer, and a start/stop button with your car's drivetrain controls.
 
 **Description**
 
@@ -33,6 +33,10 @@ inside, it uses the game's own).
     with or without a background.
     [B]DotGMeter, DotInfo, DotTimer[/B] - G with trail and peak; water, oil, fuel;
     0-100 / 0-200 km/h (0-60 / 0-120 mph) with your session best.
+    [B]DotShift[/B] - shift lights: a Glyph strip filling from both ends, flashing at the shift point.
+    [B]DotDrift[/B] - drift angle on an arc, with the biggest angle so far.
+    [B]DotMap[/B] - minimap: the roads round you, heading up, other cars as dots, zooms with speed.
+    [B]DotLap[/B] - lap timer on a line you click to set, with a live delta to your best lap.
     [B]DotDash[/B] - everything on one card.
 
     Units follow your game options (km/h / mph, bar / kPa / psi, °C / °F).

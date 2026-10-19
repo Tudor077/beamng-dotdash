@@ -14,6 +14,10 @@
 //   DotInfo      water, oil, fuel as readouts with dot bars
 //   DotTimer     0-100 and 0-200 km/h, session bests
 //   DotStartStop the engine button - drawn here, pressed in the adapter
+//   DotShift     shift lights: a Glyph strip filling from both ends, flashing at the limit
+//   DotDrift     drift angle on an arc, with the biggest so far
+//   DotMap       minimap: the roads round the car, heading up, other cars as white dots
+//   DotLap       lap timer on a line you click to set, with a live delta to the best lap
 
 (function (root) {
   "use strict";
@@ -43,12 +47,12 @@
   }
   function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
 
-  // A gear as the gearbox names it. "S3" / "M4" (sport / manual mode of an
-  // automatic or DCT) get the number big and the mode letter small beside it;
+  // A gear as the gearbox names it. "D3" / "S3" / "M4" (drive / sport / manual
+  // mode of an automatic or DCT) get the number big and the mode letter small beside it;
   // everything else - P R N D, 1-9, R2 - is set as it is.
   function gearText(c, g, x, y, size, col) {
     g = g === undefined || g === null ? "N" : String(g);
-    var m = /^([SM])(\d+)$/.exec(g);
+    var m = /^([DSM])(\d+)$/.exec(g);
     if (!m) { text(c, g, x, y, font("head", size * (g.length > 1 ? 0.78 : 1)), col); return; }
     c.font = font("head", size); var wn = c.measureText(m[2]).width;
     c.font = font("mono", size * 0.42); var wl = c.measureText(m[1]).width;
@@ -353,10 +357,10 @@
       cur = d.gearIndex < 0 ? "R" : d.gearIndex === 0 ? "N" : String(d.gearIndex);
     } else {
       // automatic / DCT: the selector positions. In sport or manual mode the
-      // S or M slot lights and carries the gear ("S3", "M4").
+      // D, S or M slot lights and carries the gear ("D3", "S3", "M4").
       items = ["P", "R", "N", "D", "S", "M"];
       cur = String(d.gear || "N");
-      var mode = /^([SM])(\d+)$/.exec(cur);
+      var mode = /^([DSM])(\d+)$/.exec(cur);
       if (mode) { items[items.indexOf(mode[1])] = cur; }
       else if (items.indexOf(cur) < 0) items.push(cur);       // "1", "2" low ranges
     }
@@ -483,6 +487,267 @@
       if (t.state === "200" && v >= b) { t.last200 = s; t.state = "done"; }
     }
   }, function () { this.t = { state: "idle", t0: 0, last100: null, best100: null, last200: null }; });
+
+  // ---- shift lights: a Glyph strip that fills from both ends to the middle --
+  // Starts lighting at 60% of the rev range, white, then red over the last
+  // stretch; at the shift point the whole strip flashes red.
+  root.DotShift = make(function (c, W, H, now, d) {
+    this.card(c);
+    var maxRpm = d.maxRpm > 0 ? d.maxRpm : 7000;
+    var from = 0.6, at = 0.95;
+    var f = clamp(((d.rpm || 0) / maxRpm - from) / (at - from), 0, 1);
+    var shift = (d.rpm || 0) >= maxRpm * at, blink = Math.floor(now / 70) % 2;
+    var half = 8, n = half * 2;
+    var pad = Math.min(W, H) * 0.2, gap = Math.max(3, (W - pad * 2) * 0.012);
+    var sw = (W - pad * 2 - gap * (n - 1)) / n, sh = Math.min(H - pad * 2, sw * 1.1);
+    var lit = Math.round(f * half), y = H / 2 - sh / 2;
+    for (var i = 0; i < n; i++) {
+      var k = i < half ? i : n - 1 - i;            // steps in from its end: 0 at the edges
+      var col = DIM;
+      if (shift) col = blink ? RED : DIMRED;
+      else if (k < lit) col = k >= half - 3 ? RED : WHITE;
+      else if (k >= half - 3) col = DIMRED;
+      rr(c, pad + i * (sw + gap), y, sw, sh, Math.min(sw, sh) * 0.5);
+      c.fillStyle = col; c.fill();
+    }
+  });
+
+  // ---- drift: the angle on an arc --------------------------------------------
+  // The angle comes from lua/vehicle/extensions/dotdash.lua (electrics.dotDrift);
+  // apps.js loads it into the car. The side the nose points lights up; the
+  // biggest angle (above 20 km/h, short of a spin) stays as a red dot until
+  // you have driven straight for 5 s.
+  var DRIFT_SPIN = 110, DRIFT_HOLD = 5000;         // the max is kept 5 s after the last slide
+  root.DotDrift = make(function (c, W, H, now, d) {
+    this.card(c);
+    var pad = Math.min(W, H) * 0.1, peak = this.peak;
+    var a = d.drift === undefined ? null : d.drift;
+    var abs = a === null ? 0 : Math.abs(a);
+    // arc: -90..+90 across the top half of a circle, the nose's direction lit
+    var cx = W / 2, cy = H * 0.68, R = Math.min(W * 0.4, H * 0.55);
+    var n = 37, step = 180 / (n - 1);
+    for (var i = 0; i < n; i++) {
+      var deg = -90 + step * i, ang = -Math.PI / 2 + deg * Math.PI / 180;
+      var on = a !== null && abs >= 3 && (a > 0 ? deg > 0 && deg <= a + step / 2 : deg < 0 && deg >= a - step / 2);
+      var held = peak.deg > 0 && Math.abs(Math.abs(deg) - Math.min(90, peak.deg)) < step / 2 && (deg > 0) === (peak.side > 0);
+      var col = on ? (abs >= 60 ? RED : WHITE) : held ? RED : (Math.abs(deg) % 30 === 0 ? "#3a3a3a" : DIM);
+      dot(c, cx + Math.cos(ang) * R, cy + Math.sin(ang) * R, Math.max(1.5, R * 0.035), col);
+    }
+    num(c, a === null ? "--" : String(Math.round(abs)), cx, cy - R * 0.32, R * 0.44, abs >= 10 ? WHITE : GREY);
+    text(c, "°", cx + R * 0.32, cy - R * 0.46, font("mono", R * 0.16), MUTE);
+    var fs = Math.min(H * 0.1, W * 0.06);
+    text(c, a !== null && abs >= 3 ? (a > 0 ? "R" : "L") : "", cx, cy + R * 0.02, font("mono", fs), MUTE, "center", "bottom");
+    text(c, "DRIFT", pad, H - pad, font("mono", fs), MUTE, "left", "bottom");
+    text(c, a === null ? "NO DATA" : peak.deg ? "MAX " + Math.round(peak.deg) + "°" : "", W - pad, H - pad, font("mono", fs), a === null ? RED : GREY, "right", "bottom");
+  }, function (d, now) {
+    if (d.drift === undefined) return;
+    var abs = Math.abs(d.drift);
+    var sliding = (d.speed || 0) > 5.5 && abs >= 10 && abs < DRIFT_SPIN;
+    if (sliding) {
+      this.lastSlide = now;
+      if (abs > this.peak.deg) this.peak = { deg: abs, side: d.drift };
+    } else if (this.peak.deg && now - this.lastSlide > DRIFT_HOLD) {
+      this.peak = { deg: 0, side: 0 };              // straight for a while: forget it
+    }
+  }, function () { this.peak = { deg: 0, side: 0 }; this.lastSlide = 0; });
+
+  // ---- lap: a lap timer on a line you set yourself, with a live delta ------
+  // Click the app where the lap should start: the line goes across the road
+  // there, square to the way the car is heading. A lap ends when the car
+  // crosses it again going the same way, within 25 m of where it was set.
+  // The delta compares time at the same distance into the lap with the best
+  // lap: negative (white) = ahead, positive (red) = behind.
+  function lapFmt(t) {
+    if (t === null || t === undefined) return "-:--.--";
+    var m = Math.floor(t / 60), s = t - m * 60;
+    return m + ":" + (s < 10 ? "0" : "") + s.toFixed(2);
+  }
+  root.DotLap = make(function (c, W, H, now, d) {
+    this.card(c);
+    var L = this.L, pad = Math.min(W, H) * 0.1, fs = Math.min(H * 0.1, W * 0.05);
+    text(c, "LAP" + (L.line ? " " + (L.n + 1) : ""), pad, pad, font("mono", fs), MUTE, "left", "top");
+    if (!L.line) {
+      text(c, d.px === undefined ? "NO POSITION" : "CLICK TO SET", W / 2, H * 0.42, font("head", H * 0.16), WHITE);
+      text(c, "THE START / FINISH LINE HERE", W / 2, H * 0.62, font("mono", fs), GREY);
+      return;
+    }
+    var running = L.t0 !== null;
+    num(c, running ? lapFmt(L.clock - L.t0) : "-:--.--", pad, H * 0.5, H * 0.3, WHITE, "left");
+    if (running && L.delta !== null) {
+      var dl = L.delta, s = (dl < 0 ? "-" : "+") + Math.abs(dl).toFixed(2);
+      num(c, s, W - pad, H * 0.5, H * 0.2, dl < 0 ? WHITE : RED, "right");
+    } else if (!running) {
+      text(c, "CROSS THE LINE", W - pad, H * 0.5, font("mono", fs), GREY, "right");
+    }
+    text(c, "LAST " + lapFmt(L.last), pad, H - pad, font("mono", fs), GREY, "left", "bottom");
+    text(c, "BEST " + lapFmt(L.best), W - pad, H - pad, font("mono", fs), L.last !== null && L.last === L.best ? RED : GREY, "right", "bottom");
+    text(c, "CLICK = NEW LINE", W - pad, pad, font("mono", fs * 0.8), "#444", "right", "top");
+  }, function (d, now) {
+    var L = this.L;
+    var dt = L.prevNow ? Math.min(0.1, (now - L.prevNow) / 1000) : 0;
+    L.prevNow = now;
+    if (d.px === undefined) return;
+    // heading from movement, smoothed - the streams carry no direction vector
+    if (L.ppx !== undefined) {
+      var mx = d.px - L.ppx, my = d.py - L.ppy, ml = Math.sqrt(mx * mx + my * my);
+      if (ml > 0.05) { L.hx = L.hx * 0.7 + mx / ml * 0.3; L.hy = L.hy * 0.7 + my / ml * 0.3; }
+    }
+    if (L.want) {                                   // a click asked for the line here
+      var hl = Math.sqrt(L.hx * L.hx + L.hy * L.hy);
+      if (hl > 0.5 && (d.speed || 0) > 1) {
+        L.line = { x: d.px, y: d.py, dx: L.hx / hl, dy: L.hy / hl };
+        L.want = false; L.t0 = null; L.n = 0; L.last = null; L.best = null; L.bestTrace = null; L.trace = []; L.delta = null;
+        L.side = 0;
+      }
+    }
+    if (L.line) {
+      var ln = L.line, rx = d.px - ln.x, ry = d.py - ln.y;
+      var along = rx * ln.dx + ry * ln.dy, across = Math.abs(-rx * ln.dy + ry * ln.dx);
+      var side = along >= 0 ? 1 : -1;
+      if (L.side === -1 && side === 1 && across < 25 && Math.abs(along) < 15) {
+        if (L.t0 !== null) {                        // a lap done
+          var t = L.clock - L.t0;
+          L.last = t; L.n++;
+          if (L.best === null || t < L.best) { L.best = t; L.bestTrace = L.trace; }
+        }
+        L.t0 = L.clock; L.dist = 0; L.trace = [[0, 0]]; L.delta = null;
+      }
+      L.side = side;
+    }
+    L.clock += dt;
+    if (L.t0 !== null) {
+      L.dist += (d.speed || 0) * dt;
+      var lt = L.clock - L.t0;
+      L.trace.push([L.dist, lt]);
+      var bt = L.bestTrace;
+      if (bt && bt.length > 1) {
+        // binary search the best lap for the same distance
+        var lo = 0, hi = bt.length - 1;
+        if (L.dist <= bt[hi][0]) {
+          while (hi - lo > 1) { var m = (lo + hi) >> 1; if (bt[m][0] < L.dist) lo = m; else hi = m; }
+          var a0 = bt[lo], a1 = bt[hi], k = a1[0] > a0[0] ? (L.dist - a0[0]) / (a1[0] - a0[0]) : 0;
+          L.delta = lt - (a0[1] + (a1[1] - a0[1]) * k);
+        }
+      }
+    }
+    L.ppx = d.px; L.ppy = d.py;
+  }, function () {
+    this.L = { line: null, want: false, t0: null, n: 0, last: null, best: null, trace: [], bestTrace: null,
+               delta: null, clock: 0, dist: 0, hx: 0, hy: 0, side: 0 };
+  });
+  root.DotLap.prototype.setLine = function () { this.L.want = true; if (this.data) this.draw(); };
+
+  // ---- minimap: the roads round the car, heading up ------------------------
+  // Roads and cars come from lua/ge/extensions/dotdashMap.lua (apps.js passes
+  // them in with setRoads / cars). Roads go into a 100 m grid so each frame
+  // only draws what is in view. Drawn the way BeamNG's own minimap does it:
+  // thin lines of a fixed width on screen over a dark edge, brightness by how
+  // drivable the road is (dotted for tracks), about 220 m round the car
+  // standing, out to 380 m at speed; the turning is smoothed.
+  var MAP_CELL = 100;
+  root.DotMap = make(function (c, W, H, now, d) {
+    // its own disc, near opaque: the roads have to read over bright scenery
+    var S = Math.min(W, H), cx = W / 2, cy = H / 2, R = S / 2 - 1;
+    c.beginPath(); c.arc(cx, cy, S / 2, 0, TAU); c.fillStyle = "rgba(0,0,0,0.93)"; c.fill();
+    var me = null, cars = this.cars || [];
+    for (var i = 0; i < cars.length; i++) if (cars[i].me) { me = cars[i]; break; }
+    if (!this.roads || !me) {
+      text(c, !this.roads ? "NO MAP" : "NO CAR", cx, cy, font("mono", R * 0.14), MUTE);
+      return;
+    }
+    // zoom with speed, smoothed so it breathes rather than jumps
+    var want = clamp(220 + (d.speed || 0) * 4, 220, 380);
+    this.view = this.view ? this.view + (want - this.view) * 0.04 : want;
+    var s = R / this.view;
+    // heading up: the car's direction turned to point at the top, eased so
+    // the map turns smoothly instead of shaking with the body
+    var target = Math.atan2(me.dy, me.dx);
+    if (this.hdg === undefined) this.hdg = target;
+    var diff = target - this.hdg;
+    diff = diff - TAU * Math.round(diff / TAU);
+    this.hdg += diff * 0.2;
+    var th = Math.PI / 2 - this.hdg, ct = Math.cos(th), st = Math.sin(th);
+    var px = cx, py = cy + R * 0.25;                  // the car sits low, to see ahead
+    var X = function (x, y) { var rx = x - me.x, ry = y - me.y; return px + (rx * ct - ry * st) * s; };
+    var Y = function (x, y) { var rx = x - me.x, ry = y - me.y; return py - (rx * st + ry * ct) * s; };
+
+    c.save();
+    c.beginPath(); c.arc(cx, cy, R, 0, TAU); c.clip();
+    // roads: tracks first, roads over them
+    var reach = this.view * 1.5, seen = this.seen = (this.seen || 0) + 1;
+    var gx0 = Math.floor((me.x - reach) / MAP_CELL), gx1 = Math.floor((me.x + reach) / MAP_CELL);
+    var gy0 = Math.floor((me.y - reach) / MAP_CELL), gy1 = Math.floor((me.y + reach) / MAP_CELL);
+    var rd = this.roads, mark = this.mark, picked = [[], [], []];      // tracks, minor roads, roads
+    for (var gx = gx0; gx <= gx1; gx++) for (var gy = gy0; gy <= gy1; gy++) {
+      var cell = this.grid[gx + "," + gy];
+      if (!cell) continue;
+      for (var k = 0; k < cell.length; k++) {
+        var j = cell[k];
+        if (mark[j / 6] === seen) continue;
+        mark[j / 6] = seen;
+        picked[rd[j + 5] >= 0.9 ? 2 : rd[j + 5] >= 0.5 ? 1 : 0].push(j);
+      }
+    }
+    // one path per kind of road: a dark edge under everything, then the lines
+    var u = Math.max(1, R / 110);
+    var path = function (list) {
+      c.beginPath();
+      for (var k = 0; k < list.length; k++) {
+        var j = list[k];
+        c.moveTo(X(rd[j], rd[j + 1]), Y(rd[j], rd[j + 1]));
+        c.lineTo(X(rd[j + 2], rd[j + 3]), Y(rd[j + 2], rd[j + 3]));
+      }
+    };
+    c.lineCap = "round"; c.lineJoin = "round";
+    var KINDS = [[0, "#6a6a6a", 1.4, [2.5 * u, 3 * u]], [1, "#a8a8a8", 2], [2, "#ececec", 2.8]];
+    KINDS.forEach(function (k) {
+      path(picked[k[0]]); c.strokeStyle = "#000"; c.lineWidth = (k[2] + 2.5) * u; c.stroke();
+    });
+    KINDS.forEach(function (k) {
+      path(picked[k[0]]); c.strokeStyle = k[1]; c.lineWidth = k[2] * u;
+      if (k[3]) c.setLineDash(k[3]);
+      c.stroke(); c.setLineDash([]);
+    });
+    c.lineCap = "butt"; c.lineJoin = "miter";
+    // the other cars: grey dots
+    for (i = 0; i < cars.length; i++) {
+      if (cars[i].me) continue;
+      var ox = X(cars[i].x, cars[i].y), oy = Y(cars[i].x, cars[i].y), orad = Math.max(2.5, R * 0.032);
+      dot(c, ox, oy, orad + 1.2, "#000"); dot(c, ox, oy, orad, WHITE);
+    }
+    c.restore();
+
+    // the car: a white chevron pointing up
+    var a = Math.max(6, R * 0.075);
+    c.beginPath();
+    c.moveTo(px, py - a * 1.2); c.lineTo(px + a * 0.85, py + a * 0.8);
+    c.lineTo(px, py + a * 0.35); c.lineTo(px - a * 0.85, py + a * 0.8); c.closePath();
+    c.fillStyle = RED; c.fill();
+    c.strokeStyle = "#000"; c.lineWidth = 1.5; c.stroke();
+
+    // a ring of dots on the rim, north in red
+    var nAng = Math.atan2(-ct, -st);                // where world north (0, 1) lands on screen
+    for (i = 0; i < 48; i++) {
+      var aa = i / 48 * TAU;
+      dot(c, cx + Math.cos(aa) * (R - 4), cy + Math.sin(aa) * (R - 4), 1.1, "#2c2c2c");
+    }
+    var nr = R - Math.max(9, R * 0.1);
+    text(c, "N", cx + Math.cos(nAng) * nr, cy + Math.sin(nAng) * nr, font("head", Math.max(9, R * 0.11)), RED);
+  }, null, function () { this.roads = null; this.grid = {}; this.mark = []; this.cars = []; });
+
+  root.DotMap.prototype.setRoads = function (rd) {
+    this.roads = rd && rd.length ? rd : null;
+    this.grid = {}; this.mark = new Array(rd ? rd.length / 6 : 0);
+    if (!this.roads) return;
+    for (var j = 0; j < rd.length; j += 6) {
+      var x0 = Math.floor(Math.min(rd[j], rd[j + 2]) / MAP_CELL), x1 = Math.floor(Math.max(rd[j], rd[j + 2]) / MAP_CELL);
+      var y0 = Math.floor(Math.min(rd[j + 1], rd[j + 3]) / MAP_CELL), y1 = Math.floor(Math.max(rd[j + 1], rd[j + 3]) / MAP_CELL);
+      for (var gx = x0; gx <= x1; gx++) for (var gy = y0; gy <= y1; gy++) {
+        var key = gx + "," + gy;
+        (this.grid[key] || (this.grid[key] = [])).push(j);
+      }
+    }
+  };
 
   // ---- start / stop button, with the drivetrain controls round it ----------
   // The game sends the drivetrain buttons itself (diff locks, range box, 4WD,
