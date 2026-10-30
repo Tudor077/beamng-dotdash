@@ -51,10 +51,13 @@ in Fahrenheit too).
 DotDash also carries the protocol of [CorsaConnect](https://github.com/Tudor077/CorsaConnect),
 the app that turns a phone into a steering wheel and dash. BeamNG's OutGauge
 sends the rpm but not the car's rpm range, so the protocol sends the rest:
-idle rpm and the rev limiter, the same numbers DotDash's own gauges use, to
-UDP port 4446 on your own PC (127.0.0.1), four times a second. CorsaConnect
-fits the phone's tach to them; with nothing listening the packets go nowhere.
-It reads nothing else and sends nowhere else.
+idle rpm and the rev limiter, the same numbers DotDash's own gauges use. And
+since 1.3, the vibration BeamNG would give a gamepad, worked out the way the
+game's own `haptics.lua` does it: the road (bumps, kerbs, hits, tyre slip),
+wheelspin, wheels locking, and ABS working - so the phone vibrates like a
+controller would. It goes to UDP port 4446 on your own PC (127.0.0.1), 30
+times a second; with nothing listening the packets go nowhere. It reads
+nothing else and sends nowhere else.
 
 It runs under **Options -> Other -> Protocols -> Other protocols**, which is on
 by default; untick that to turn it off. The source is
