@@ -43,7 +43,7 @@
   }
   function text(c, s, x, y, f, col, align, base) {
     c.font = f; c.fillStyle = col; c.textAlign = align || "center"; c.textBaseline = base || "middle";
-    c.fillText(s, x, y);
+    c.fillText(s, c.textAlign === "center" ? x - root.dotInkShift(c, s) : x, y);
   }
   function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
 

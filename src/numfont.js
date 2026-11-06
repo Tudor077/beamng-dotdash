@@ -162,6 +162,31 @@
     var m = /^([0-9.\- ]+)(\D*)$/.exec(s);
     return m ? [m[1], m[2]] : null;
   }
+  // A lone digit centred by its width doesn't look centred: a 4 has its weight
+  // in the stem, on the right (and the tacho's 4 sits on the gauge's axis, at
+  // 12 o'clock, where it shows). This is how far c.font's digit has to move
+  // left so its ink balances on x. Read off the glyph once per font, as a share
+  // of the size; not kept until the font has loaded, so it isn't the fallback's.
+  var inkCv = null, inkShare = {};
+  root.dotInkShift = function (c, s) {
+    if (!/^\d$/.test(s) || typeof document === "undefined") return 0;
+    var size = parseFloat(c.font), face = c.font.replace(/^[\d.]+px\s*/, ""), key = s + face;
+    if (inkShare[key] === undefined) {
+      var E = 100, W = 160, font = E + "px " + face, sum = 0, mass = 0;
+      inkCv = inkCv || document.createElement("canvas");
+      inkCv.width = W; inkCv.height = W;
+      var k = inkCv.getContext("2d", { willReadFrequently: true });
+      k.font = font; k.textAlign = "center"; k.textBaseline = "middle"; k.fillStyle = "#fff";
+      k.fillText(s, W / 2, W / 2);
+      var px = k.getImageData(0, 0, W, W).data;
+      for (var y = 0; y < W; y++)
+        for (var x = 0; x < W; x++) { var a = px[(y * W + x) * 4 + 3]; sum += a * (x + 0.5); mass += a; }
+      var share = mass ? (sum / mass - W / 2) / E : 0;
+      if (!document.fonts || document.fonts.check(font)) inkShare[key] = share;
+      return share * size;
+    }
+    return inkShare[key] * size;
+  };
   root.dotNumWidth = function (c, s, size, fontFn) {
     var style = root.DOT_STYLE.digits, p = split(String(s)), ts = TYPESET[style];
     if (ts || !p) { ts = ts || TYPESET.dot; c.font = fontFn(ts[0], size * ts[1]); return c.measureText(String(s)).width; }
@@ -177,7 +202,7 @@
       ts = ts || TYPESET.dot;
       c.font = fontFn(ts[0], size * ts[1]); c.fillStyle = col;
       c.textAlign = align; c.textBaseline = "middle";
-      c.fillText(s, x, y);
+      c.fillText(s, align === "center" ? x - root.dotInkShift(c, s) : x, y);
       return;
     }
     var h = size * 0.72, w = root.dotNumWidth(c, s, size, fontFn);

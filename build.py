@@ -32,8 +32,9 @@ APP = "DotDash"
 MOD = "dotdash"
 # Bump for every upload to the BeamNG Repository (1.1: the CorsaConnect protocol;
 # 1.2: DotShift, DotDrift, DotMap, DotLap, D3 on automatics and DCTs, app thumbnails;
-# 1.3: the protocol also sends BeamNG's gamepad vibration).
-VERSION = "1.3"
+# 1.3: the protocol also sends BeamNG's gamepad vibration;
+# 1.4: lone digits centred by their ink, so the 4s sit straight).
+VERSION = "1.4"
 USER = os.path.join(os.environ["LOCALAPPDATA"], "BeamNG", "BeamNG.drive", "current")
 FONTS = [("NType82 Headline", "NType82-Headline.woff2", "woff2"),
          ("NType82 Mono", "NType82Mono-Regular.woff2", "woff2"),

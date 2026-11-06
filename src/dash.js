@@ -196,12 +196,12 @@
     c.textAlign = "center"; c.textBaseline = "middle";
     if (m) {   // "D3" / "S3" / "M4": the number big, the mode letter small beside it
       c.font = this._font("head", ringR * 1.05); const wn = c.measureText(m[2]).width;
-      c.fillStyle = WHITE; c.fillText(m[2], gx0 + ringR * 0.12, gy0 + ringR * 0.06);
+      c.fillStyle = WHITE; c.fillText(m[2], gx0 + ringR * 0.12 - (root.dotInkShift ? root.dotInkShift(c, m[2]) : 0), gy0 + ringR * 0.06);
       c.font = this._font("mono", ringR * 0.42);
       c.fillStyle = m[1] === "S" ? RED : GREY; c.fillText(m[1], gx0 + ringR * 0.12 - wn / 2 - ringR * 0.22, gy0 - ringR * 0.22);
     } else {
       c.font = this._font("head", ringR * (g.length > 1 ? 0.85 : 1.15));
-      c.fillStyle = WHITE; c.fillText(g, gx0, gy0 + ringR * 0.06);
+      c.fillStyle = WHITE; c.fillText(g, gx0 - (root.dotInkShift ? root.dotInkShift(c, g) : 0), gy0 + ringR * 0.06);
     }
 
     // ---- G meter ----
